@@ -145,14 +145,50 @@ extension PackageManifest {
         public let settings: [Setting]?
 
         public struct Setting: Codable, Equatable, Hashable {
-            public let name: Name
-            public let value: [String]
+            public let kind: Kind
 
-            public enum Name: String, Codable, Equatable {
-                case define
-                case headerSearchPath
-                case linkedFramework
-                case linkedLibrary
+            enum CodingKeys: String, CodingKey {
+                case kind
+            }
+
+            public enum Kind: Codable, Hashable  {
+                case define(String)
+                case headerSearchPath(String)
+                case linkedFramework(String)
+                case linkedLibrary(String)
+
+                enum CodingKeys: String, CodingKey {
+                    case define
+                    case headerSearchPath
+                    case linkedFramework
+                    case linkedLibrary
+                }
+
+                enum ValueKeys: String, CodingKey {
+                    case _0
+                }
+
+                public init(from decoder: Decoder) throws {
+                    let container = try decoder.container(keyedBy: PackageManifest.Target.Setting.Kind.CodingKeys.self)
+                    var allKeys = ArraySlice(container.allKeys)
+                    guard let onlyKey = allKeys.popFirst(), allKeys.isEmpty else {
+                        throw DecodingError.typeMismatch(PackageManifest.Target.Setting.Kind.self, DecodingError.Context.init(codingPath: container.codingPath, debugDescription: "Invalid number of keys found, expected one.", underlyingError: nil))
+                    }
+                    switch onlyKey {
+                    case .define:
+                        let nestedContainer = try container.nestedContainer(keyedBy: PackageManifest.Target.Setting.Kind.DefineCodingKeys.self, forKey: PackageManifest.Target.Setting.Kind.CodingKeys.define)
+                        self = PackageManifest.Target.Setting.Kind.define(try nestedContainer.decode(String.self, forKey: ._0))
+                    case .headerSearchPath:
+                        let nestedContainer = try container.nestedContainer(keyedBy: PackageManifest.Target.Setting.Kind.HeaderSearchPathCodingKeys.self, forKey: PackageManifest.Target.Setting.Kind.CodingKeys.headerSearchPath)
+                        self = PackageManifest.Target.Setting.Kind.headerSearchPath(try nestedContainer.decode(String.self, forKey: ._0))
+                    case .linkedFramework:
+                        let nestedContainer = try container.nestedContainer(keyedBy: PackageManifest.Target.Setting.Kind.LinkedFrameworkCodingKeys.self, forKey: PackageManifest.Target.Setting.Kind.CodingKeys.linkedFramework)
+                        self = PackageManifest.Target.Setting.Kind.linkedFramework(try nestedContainer.decode(String.self, forKey: ._0))
+                    case .linkedLibrary:
+                        let nestedContainer = try container.nestedContainer(keyedBy: PackageManifest.Target.Setting.Kind.LinkedLibraryCodingKeys.self, forKey: PackageManifest.Target.Setting.Kind.CodingKeys.linkedLibrary)
+                        self = PackageManifest.Target.Setting.Kind.linkedLibrary(try nestedContainer.decode(String.self, forKey: ._0))
+                    }
+                }
             }
         }
     }

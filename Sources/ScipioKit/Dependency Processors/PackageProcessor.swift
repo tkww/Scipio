@@ -334,7 +334,13 @@ public final class PackageProcessor: DependencyProcessor {
                 try swiftModulePath.copy(modulesPath + "\(frameworkName).swiftmodule")
             }
 
-            if !swiftModulePath.exists || target?.settings?.contains(where: { $0.name == .headerSearchPath }) == true {
+            let isHeaderSearchPath = target?.settings?.contains(where: { if case .headerSearchPath = $0.kind {
+                return true
+            } else {
+                return false
+            }})
+
+            if !swiftModulePath.exists || isHeaderSearchPath == true {
                 // Objective-C projects
                 let moduleMapDirectory = archiveIntermediatesPath + "IntermediateBuildFilesPath/\(package.name).build/Release-\(sdk.rawValue)/\(frameworkName).build"
                 var moduleMapPath = moduleMapDirectory.glob("*.modulemap").first
