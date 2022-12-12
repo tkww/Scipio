@@ -134,7 +134,7 @@ public final class CocoaPodProcessor: DependencyProcessor {
             targets: dependencies
                 .flatMap { dependency in
                     return Config.current.platformVersions
-                        .map { Target(name: "\(dependency.name)-\($0.key.rawValue)", type: .framework, platform: .iOS) }
+                        .map { Target(name: "\(dependency.name)-\($0.key.rawValue)", type: .framework, platform: .iOS, settings: Settings(buildSettings: ["GENERATE_INFOPLIST_FILE":"YES"])) }
                 },
             schemes: dependencies
                 .flatMap { dependency in
@@ -210,16 +210,6 @@ project '\(projectPath.string)'
                 podsRoot: sandboxPath,
                 notIn: projectProducts
             )
-
-            if filteredProductNames.contains(dependency.name) {
-                for target in project.pbxproj.targets(named: dependency.name) {
-                    for config in target.buildConfigurationList?.buildConfigurations ?? [] {
-                        config.buildSettings["PRODUCT_NAME"] = "\(dependency.name)Package"
-                    }
-                }
-
-                try project.write(path: podsProjectPath)
-            }
 
             return CocoaPodDescriptor(
                 name: dependency.name,

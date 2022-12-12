@@ -21,7 +21,8 @@ struct Xcode {
         var buildSettings: [String: String] = [
             "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
             "SKIP_INSTALL": "NO",
-            "INSTALL_PATH": "/Library/Frameworks"
+            "INSTALL_PATH": "/Library/Frameworks",
+            "CODE_SIGN_IDENTITY": ""
         ]
 
         if let additionalBuildSettings = additionalBuildSettings {
