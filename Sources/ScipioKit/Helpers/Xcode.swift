@@ -61,6 +61,8 @@ struct Xcode {
             .glob("*.framework")
             .filter { isIncluded?($0.lastComponentWithoutExtension) ?? true }
 
+        let filteredFrameworkNames = frameworkPaths.map { $0.lastComponentWithoutExtension }
+
         return try frameworkPaths.compactMap { frameworkPath in
             let productName = frameworkPath.lastComponentWithoutExtension
             let frameworks = archivePaths
@@ -75,6 +77,23 @@ struct Xcode {
 
             if output.exists {
                 try output.delete()
+            }
+
+            // TODO: Need a robust solution
+            // The following snippet of code is used to solve issue: https://github.com/apple/swift/issues/56573
+            // But the solution is fragile
+            try frameworks.forEach { frameworkPath in
+                let frameworkName = frameworkPath.lastComponentWithoutExtension
+                let swiftInterfaces = (frameworkPath + "Modules/\(frameworkName).swiftmodule").glob("*.swiftinterface")
+                try swiftInterfaces.forEach { interface in
+                    let content = try interface.read(.utf8)
+                    var replaced = content
+
+                    filteredFrameworkNames.forEach { filteredFrameworkName in
+                        replaced = replaced.replacingOccurrences(of: "\(filteredFrameworkName).\(filteredFrameworkName)", with: filteredFrameworkName)
+                    }
+                    try interface.write(replaced as String)
+                }
             }
 
             let command = Xcodebuild(
