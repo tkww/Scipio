@@ -325,7 +325,8 @@ public final class PackageProcessor: DependencyProcessor {
             let buildProductsPath = archiveIntermediatesPath + "BuildProductsPath"
             let releasePath = buildProductsPath + "Release-\(sdk.rawValue)"
             let swiftModulePath = releasePath + "\(frameworkName).swiftmodule"
-            let resourcesBundlePath = releasePath + "\(frameworkName)_\(frameworkName).bundle"
+            let resourcesBundleName = "\(frameworkName)_\(frameworkName).bundle"
+            let resourcesBundlePath = frameworkPath.parent() + resourcesBundleName
 
             let target = package.manifest.targets.first(where: { $0.name == frameworkName })
 
@@ -496,8 +497,10 @@ public final class PackageProcessor: DependencyProcessor {
                 try (modulesPath + "module.modulemap").write(moduleMapContent)
             }
 
+            // TODO: By now, framework bundles should be added manually
+            // https://forums.swift.org/t/swift-packages-resource-bundle-not-present-in-xcarchive-when-framework-using-said-package-is-archived/50084/4
             if resourcesBundlePath.exists {
-                try resourcesBundlePath.copy(frameworkPath)
+                try resourcesBundlePath.copy(frameworkPath + resourcesBundleName)
             }
         }
     }
