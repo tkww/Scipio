@@ -105,7 +105,7 @@ struct Xcode {
                 try command.run()
             }
 
-            // Framework bundles should be added manually:
+            // TODO: By now, framework bundles should be added manually
             // https://forums.swift.org/t/swift-packages-resource-bundle-not-present-in-xcarchive-when-framework-using-said-package-is-archived/50084/4
             includeBundle(productName: productName, archivePaths: archivePaths, outputPath: output)
 
