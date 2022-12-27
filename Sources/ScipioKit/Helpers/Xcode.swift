@@ -105,25 +105,7 @@ struct Xcode {
                 try command.run()
             }
 
-            // TODO: By now, framework bundles should be added manually
-            // https://forums.swift.org/t/swift-packages-resource-bundle-not-present-in-xcarchive-when-framework-using-said-package-is-archived/50084/4
-            includeBundle(productName: productName, archivePaths: archivePaths, outputPath: output)
-
             return output
-        }
-    }
-
-    private static func includeBundle(productName: String, archivePaths: [Path], outputPath: Path) {
-        let bundleName = "\(productName)_\(productName).bundle"
-        let bundles = archivePaths.map { $0 + "Products/Library/Frameworks/\(bundleName)" }
-        let outputFrameworks = outputPath.glob("*/\(productName).framework")
-
-        guard bundles.count == outputFrameworks.count,
-              bundles.allSatisfy({ $0.exists }) else { return }
-
-        log.info("Including \(bundleName)...")
-        outputFrameworks.enumerated().forEach { index, path in
-            try? bundles[index].copy(path + bundleName)
         }
     }
 }
