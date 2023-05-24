@@ -82,6 +82,7 @@ public struct PackageManifest: Codable, Equatable {
 
     public func getBuildables() -> [SwiftPackageBuildable] {
         return products
+            .filter { $0.type != .executable && $0.type != .plugin }
             .flatMap { getBuildables(in: $0) }
             .uniqued()
     }
@@ -131,7 +132,40 @@ extension PackageManifest {
 
     public struct Product: Codable, Equatable, Hashable {
         public let name: String
+        public let type: ProductType
         public let targets: [String]
+
+        public enum ProductType: Codable, Equatable, Hashable {
+            case executable
+            case plugin
+            case library([String])
+
+            enum CodingKeys: String, CodingKey {
+                case executable
+                case plugin
+                case library
+            }
+
+            enum ValueKeys: String, CodingKey {
+                case _0
+            }
+
+            public init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: PackageManifest.Product.ProductType.CodingKeys.self)
+                var allKeys = ArraySlice(container.allKeys)
+                guard let onlyKey = allKeys.popFirst(), allKeys.isEmpty else {
+                    throw DecodingError.typeMismatch(PackageManifest.Product.ProductType.self, DecodingError.Context.init(codingPath: container.codingPath, debugDescription: "Invalid number of keys found, expected one.", underlyingError: nil))
+                }
+                switch onlyKey {
+                case .executable:
+                    self = PackageManifest.Product.ProductType.executable
+                case .plugin:
+                    self = PackageManifest.Product.ProductType.plugin
+                case .library:
+                    self = PackageManifest.Product.ProductType.library(try container.decode([String].self, forKey: .library))
+                }
+            }
+        }
     }
 
     public struct Target: Codable, Equatable, Hashable {
@@ -251,6 +285,8 @@ extension PackageManifest {
         case binary = "binary"
         case regular = "regular"
         case test = "test"
+        case executable = "executable"
+        case plugin = "plugin"
     }
 }
 
