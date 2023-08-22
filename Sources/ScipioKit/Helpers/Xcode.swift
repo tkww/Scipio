@@ -65,8 +65,10 @@ struct Xcode {
 
         return try frameworkPaths.compactMap { frameworkPath in
             let productName = frameworkPath.lastComponentWithoutExtension
-            let frameworks = archivePaths
-                .map { $0 + "Products/Library/Frameworks/\(productName).framework" }
+            let frameworks: [(path: Path, debugSymbolsPath: Path)] = archivePaths
+                .map { (path: $0 + "Products/Library/Frameworks/\(productName).framework",
+                         debugSymbolsPath: $0 + "dSYMs/\(productName).framework.dSYM") }
+
             let output = buildDirectory + "\(productName).xcframework"
 
             if skipIfExists, output.exists {
@@ -82,9 +84,9 @@ struct Xcode {
             // TODO: Need a robust solution
             // The following snippet of code is used to solve issue: https://github.com/apple/swift/issues/56573
             // But the solution is fragile
-            try frameworks.forEach { frameworkPath in
-                let frameworkName = frameworkPath.lastComponentWithoutExtension
-                let swiftInterfaces = (frameworkPath + "Modules/\(frameworkName).swiftmodule").glob("*.swiftinterface")
+            try frameworks.forEach { framework in
+                    let frameworkName = framework.path.lastComponentWithoutExtension
+                    let swiftInterfaces = (framework.path + "Modules/\(frameworkName).swiftmodule").glob("*.swiftinterface")
                 try swiftInterfaces.forEach { interface in
                     let content = try interface.read(.utf8)
                     var replaced = content
@@ -96,10 +98,19 @@ struct Xcode {
                 }
             }
 
+            let additionalArguments = frameworks
+                .flatMap { framework in
+                    ["-framework", framework.path.string, "-debug-symbols", framework.debugSymbolsPath.string]
+                }
+            + ["-output", output.string]
+//            print(additionalArguments)
+//            exit(1)
+
             let command = Xcodebuild(
                 command: .createXCFramework,
-                additionalArguments: frameworks
-                    .flatMap { ["-framework", $0.string] } + ["-output", output.string]
+                additionalArguments: additionalArguments
+//                additionalArguments: frameworks
+//                    .flatMap { ["-framework", $0.string, "-debug-symbols", ] } + ["-output", output.string]
             )
             try buildDirectory.chdir {
                 try command.run()
