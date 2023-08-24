@@ -87,8 +87,8 @@ struct Xcode {
             // The following snippet of code is used to solve issue: https://github.com/apple/swift/issues/56573
             // But the solution is fragile
             try frameworks.forEach { framework in
-                    let frameworkName = framework.path.lastComponentWithoutExtension
-                    let swiftInterfaces = (framework.path + "Modules/\(frameworkName).swiftmodule").glob("*.swiftinterface")
+                let frameworkName = framework.path.lastComponentWithoutExtension
+                let swiftInterfaces = (framework.path + "Modules/\(frameworkName).swiftmodule").glob("*.swiftinterface")
                 try swiftInterfaces.forEach { interface in
                     let content = try interface.read(.utf8)
                     var replaced = content
