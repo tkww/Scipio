@@ -65,9 +65,11 @@ struct Xcode {
 
         return try frameworkPaths.compactMap { frameworkPath in
             let productName = frameworkPath.lastComponentWithoutExtension
-            let frameworks: [(path: Path, debugSymbolsPath: Path)] = archivePaths
-                .map { (path: $0 + "Products/Library/Frameworks/\(productName).framework",
-                         debugSymbolsPath: $0 + "dSYMs/\(productName).framework.dSYM") }
+
+            let frameworks: [(path: Path, debugSymbolsPath: Path)] = archivePaths.map { archivePath in
+                (path: archivePath + "Products/Library/Frameworks/\(productName).framework",
+                 debugSymbolsPath: archivePath + "dSYMs/\(productName).framework.dSYM")
+            }
 
             let output = buildDirectory + "\(productName).xcframework"
 
@@ -100,17 +102,18 @@ struct Xcode {
 
             let additionalArguments = frameworks
                 .flatMap { framework in
-                    ["-framework", framework.path.string, "-debug-symbols", framework.debugSymbolsPath.string]
+                    var arguments = ["-framework", framework.path.string]
+                    // Check DSYM path exists
+                    if framework.debugSymbolsPath.exists {
+                        arguments = arguments + ["-debug-symbols", framework.debugSymbolsPath.string]
+                    }
+                    return arguments
                 }
-            + ["-output", output.string]
-//            print(additionalArguments)
-//            exit(1)
+                + ["-output", output.string]
 
             let command = Xcodebuild(
                 command: .createXCFramework,
                 additionalArguments: additionalArguments
-//                additionalArguments: frameworks
-//                    .flatMap { ["-framework", $0.string, "-debug-symbols", ] } + ["-output", output.string]
             )
             try buildDirectory.chdir {
                 try command.run()
