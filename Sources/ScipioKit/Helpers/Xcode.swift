@@ -65,8 +65,12 @@ struct Xcode {
 
         return try frameworkPaths.compactMap { frameworkPath in
             let productName = frameworkPath.lastComponentWithoutExtension
-            let frameworks = archivePaths
-                .map { $0 + "Products/Library/Frameworks/\(productName).framework" }
+
+            let frameworks: [(path: Path, debugSymbolsPath: Path)] = archivePaths.map { archivePath in
+                (path: archivePath + "Products/Library/Frameworks/\(productName).framework",
+                 debugSymbolsPath: archivePath + "dSYMs/\(productName).framework.dSYM")
+            }
+
             let output = buildDirectory + "\(productName).xcframework"
 
             if skipIfExists, output.exists {
@@ -82,9 +86,9 @@ struct Xcode {
             // TODO: Need a robust solution
             // The following snippet of code is used to solve issue: https://github.com/apple/swift/issues/56573
             // But the solution is fragile
-            try frameworks.forEach { frameworkPath in
-                let frameworkName = frameworkPath.lastComponentWithoutExtension
-                let swiftInterfaces = (frameworkPath + "Modules/\(frameworkName).swiftmodule").glob("*.swiftinterface")
+            try frameworks.forEach { framework in
+                let frameworkName = framework.path.lastComponentWithoutExtension
+                let swiftInterfaces = (framework.path + "Modules/\(frameworkName).swiftmodule").glob("*.swiftinterface")
                 try swiftInterfaces.forEach { interface in
                     let content = try interface.read(.utf8)
                     var replaced = content
@@ -96,10 +100,20 @@ struct Xcode {
                 }
             }
 
+            let additionalArguments = frameworks
+                .flatMap { framework in
+                    var arguments = ["-framework", framework.path.string]
+                    // Check DSYM path exists
+                    if framework.debugSymbolsPath.exists {
+                        arguments = arguments + ["-debug-symbols", framework.debugSymbolsPath.string]
+                    }
+                    return arguments
+                }
+                + ["-output", output.string]
+
             let command = Xcodebuild(
                 command: .createXCFramework,
-                additionalArguments: frameworks
-                    .flatMap { ["-framework", $0.string] } + ["-output", output.string]
+                additionalArguments: additionalArguments
             )
             try buildDirectory.chdir {
                 try command.run()
