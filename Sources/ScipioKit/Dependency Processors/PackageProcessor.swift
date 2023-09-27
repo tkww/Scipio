@@ -325,7 +325,8 @@ public final class PackageProcessor: DependencyProcessor {
             let buildProductsPath = archiveIntermediatesPath + "BuildProductsPath"
             let releasePath = buildProductsPath + "Release-\(sdk.rawValue)"
             let swiftModulePath = releasePath + "\(frameworkName).swiftmodule"
-            let resourcesBundlePath = releasePath + "\(frameworkName)_\(frameworkName).bundle"
+            let resourcesBundleName = "\(frameworkName)_\(frameworkName).bundle"
+            let resourcesBundlePath = frameworkPath.parent() + resourcesBundleName
 
             let target = package.manifest.targets.first(where: { $0.name == frameworkName })
 
@@ -334,7 +335,13 @@ public final class PackageProcessor: DependencyProcessor {
                 try swiftModulePath.copy(modulesPath + "\(frameworkName).swiftmodule")
             }
 
-            if !swiftModulePath.exists || target?.settings?.contains(where: { $0.name == .headerSearchPath }) == true {
+            let isHeaderSearchPath = target?.settings?.contains(where: { if case .headerSearchPath = $0.kind {
+                return true
+            } else {
+                return false
+            }})
+
+            if !swiftModulePath.exists || isHeaderSearchPath == true {
                 // Objective-C projects
                 let moduleMapDirectory = archiveIntermediatesPath + "IntermediateBuildFilesPath/\(package.name).build/Release-\(sdk.rawValue)/\(frameworkName).build"
                 var moduleMapPath = moduleMapDirectory.glob("*.modulemap").first
@@ -490,8 +497,10 @@ public final class PackageProcessor: DependencyProcessor {
                 try (modulesPath + "module.modulemap").write(moduleMapContent)
             }
 
+            // TODO: By now, framework bundles should be added manually
+            // https://forums.swift.org/t/swift-packages-resource-bundle-not-present-in-xcarchive-when-framework-using-said-package-is-archived/50084/4
             if resourcesBundlePath.exists {
-                try resourcesBundlePath.copy(frameworkPath)
+                try resourcesBundlePath.copy(frameworkPath + resourcesBundleName)
             }
         }
     }
@@ -539,11 +548,7 @@ extension WorkspaceState {
 
             struct State: Codable {
                 let checkoutState: CheckoutState
-                let name: Name
-
-                enum Name: String, Codable {
-                    case checkout
-                }
+                let name: String?
 
                 struct CheckoutState: Codable {
                     let branch: String?
@@ -555,14 +560,9 @@ extension WorkspaceState {
 
         struct PackageRef: Codable {
             let identity: String
-            let kind: Kind
+            let kind: String?
             let name: String
             let path: String?
-        }
-
-        enum Kind: String, Codable {
-            case local
-            case remote
         }
 
         struct Artifact: Codable {
@@ -572,7 +572,7 @@ extension WorkspaceState {
 
             struct Source: Codable {
                 let path: String?
-                let type: Kind
+                let type: String?
                 let checksum, subpath: String?
                 let url: String?
             }
