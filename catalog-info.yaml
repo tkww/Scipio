@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: Scipio
+  annotations:
+    github.com/project-slug: tkww/Scipio
+  tags:
+    - ios
+spec:
+  type: mobile-app
+  lifecycle: production
+  owner: platform-mobile-admin
